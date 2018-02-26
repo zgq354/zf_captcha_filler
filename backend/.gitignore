@@ -1,0 +1,3 @@
+node_modules/
+data/captcha/*
+data/captcha.db
