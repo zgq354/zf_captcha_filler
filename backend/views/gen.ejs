@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit"/>
+    <title>一键登录教务系统脚本生成器 2.0</title>
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <style>
+        body{
+            font-family: Lato, "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        .account{
+            width:450px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 45px;
+        }
+        .footer-bottom{
+            margin-top: 100px;
+            padding: 18px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="account">
+            <h3>一键登录教务系统脚本生成器</h3>
+            <p>在输入框中填入账号密码后，点击生成代码按钮，将得到的链接拖到浏览器收藏夹保存。</p>
+            <p>打开教务系统登录页面时，点击收藏夹中的链接即可运行本脚本，自动填写账号密码</p>
+            <p>抢课时候若掉线要重新登录的话只需点击一下链接就能瞬间填好账号密码，节省重新输入账号密码的时间</p>
+            <p>愿大家都能抢到自己心仪的课程^_^</p>
+            <p>------- 2018.2.22 更新 --------- <br> 经过作者一个寒假的研(bao)究(gan)，本脚本已支持<b>验证码一键填充</b>！！<br><a href="https://blog.izgq.net/donate.html" target="_blank">点击为作者充电</a></p>
+            <div class="alert alert-danger" role="alert">注意：生成的脚本将包含你的教务系统的登录账号和密码，请注意保管，不能泄露给他人，不用的时候请及时删除！！</div>
+            <form id="form">
+                <div class="form-group"><input type="text" class="form-control" id="username" placeholder="学号"></div>
+                <div class="form-group"><input type="password" class="form-control" id="password" placeholder="登录密码"></div>
+                <div class="form-group"><input type="submit" class="btn btn-success" value="生成代码">  <a id="btn_reset" class="btn btn-default">重新开始</a> </div>
+            </form>
+        </div>
+        <div id="result" class="account" style="display: none; margin-top: 20px;">
+            <div>
+                <p class="text-primary">脚本生成完毕，把黑色框框的链接拖到浏览器的收藏栏中即可使用^_^</p>
+                <div class="alert alert-danger" role="alert">再重申一次：生成的脚本包含你的教务系统的登录账号和密码，请注意保管，<b>不能泄露给他人</b>，不用的时候请及时删除！！</div>
+                <p>这是不支持验证码识别的版本：<br><a id="result_link" href="#" style="display:block;padding: 12px;text-align: center; border-style: solid; color: #333;" title="把我拖到收藏栏">一键填写账号密码</a></p>
+                <p style="margin-top: 30px;">验证码识别需要 Chromium 55 以上内核浏览器支持 <a href="javascript:try{eval('(async () => ({}))()');alert('您的浏览器支持运行验证码识别！！')}catch(e){alert('您的浏览器不支持运行验证码识别，请更换支持的浏览器再使用本脚本')}">(点击检测浏览器是否支持)</a>，如 Google Chrome、360极速浏览器、QQ浏览器等等，需要切换到“极速模式”：<br><a id="result_link_beta" href="#" style="display:block;padding: 12px;text-align: center; border-style: solid; color: #333;" title="把我拖到收藏栏">一键填写账号密码和验证码(beta)</a></p>
+                <p style="margin-top: 30px;">使用图解：<br><img src="images/fast_login.gif" style="max-width: 100%;"></p>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="footer-bottom">
+    <div class="container"><p class="text-mute text-center">Made with <span><i class="glyphicon glyphicon-heart"></i></span> by <a href="https://blog.izgq.net/" target="_blank">qing</a> . <a href="https://i.scnu.edu.cn/" target="_blank">ISCNU</a></p> </div>
+</div>
+</body>
+<script>
+    var form = document.getElementById("form");
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var username = document.getElementById("username").value;
+        var pass = document.getElementById("password").value;
+        if (username && pass){
+            var result = 'javascript:(function(){if(!document.getElementById("txtUserName")){alert("请在正方教务系统登录页面下运行此脚本！"); return;}document.getElementById("txtUserName").value = "' + username + '";document.getElementById("Textbox1").style.display = "none";document.getElementById("TextBox2").style.display = "inline";document.getElementById("TextBox2").value = atob(atob("' + btoa(btoa(pass)) + '"));document.getElementById("txtSecretCode").focus();})();';
+            // console.log(result);
+            document.getElementById("result").style.display = "block";
+            document.getElementById("result_link").href = result;
+            // 验证码识别
+            var beta_result = 'javascript:(function () {try{eval("(async () => ({}))()");}catch(e){alert("您的浏览器不支持运行验证码识别，请更换支持的浏览器再使用本脚本");return;};(async()=>{window.captchaBaseURL="https://api.izgq.net/jw";const BASE_URL=window.captchaBaseURL;try{if(!document.getElementById("txtSecretCode")){throw"脚本运行环境异常，请检查";}if(!window.recognizeCaptha){let script=JSON.parse(localStorage.getItem("captchaScripts"));if(!script){let response=await fetch(BASE_URL+"/script/get");let{data,version}=await response.json();script={version,data};localStorage.setItem("captchaScripts",JSON.stringify(script));localStorage.setItem("versionLastCheckTime",JSON.stringify(Date.now()))}eval(script.data)}await window.recognizeCaptha();(function(){document.getElementById("txtUserName").value = "' + username + '";document.getElementById("Textbox1").style.display = "none";document.getElementById("TextBox2").style.display = "inline";document.getElementById("TextBox2").value = atob(atob("' + btoa(btoa(pass)) + '"));})();}catch(e){console.log("Oops, error",e);if(window.showModel){showModel("Oops, 出错了",`${e}`)}else{alert("Oops, 出错了\\n"+e)}}})();})();';
+            document.getElementById("result_link_beta").href = beta_result;
+        }else{
+            alert("学号或密码不能为空！");
+        }
+    });
+    var btn = document.getElementById("btn_reset");
+    btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        document.getElementById("username").value = '';
+        document.getElementById("password").value = '';
+        document.getElementById("result").style.display = "none";
+        document.getElementById("result_link").href = '';
+    })
+</script>
+</html>

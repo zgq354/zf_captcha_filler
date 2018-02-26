@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>样本训练页面</title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <style>
+
+  body {
+    background: #4183c4;
+  }
+
+  h3 {
+    color: white;
+  }
+
+  span {
+    color: white;
+  }
+
+  .main {
+    text-align: center;
+  }
+
+  #captcha-img {
+    height: 50px;
+  }
+
+  #chars canvas{
+    margin: 5px 10px 0 0;
+    height: 30px;
+  }
+
+  input {
+    margin-right: 5px;
+  }
+
+  button {
+    font-size: 11px;
+  }
+
+  </style>
+  <body>
+    <div class="main">
+      <h3>样本调教中心</h3>
+      <div class="captcha">
+        <img id="captcha-img">
+      </div>
+      <div id="chars"></div>
+    </div>
+  </body>
+  <script src="js/common.js"></script>
+  <script src="js/levenshtein.min.js"></script>
+  <script src="js/axios.min.js"></script>
+  <script>
+  let captchaImg = document.getElementById("captcha-img");
+  let imageId = 0;
+  function loadCaptcha() {
+    // 先让后端下载验证码图片
+    axios.get("/train/captcha")
+      .then(function (res) {
+        let { success, data } = res.data;
+        if (!success) throw "error";
+        // 验证码的图片文件名
+        let { fileName, id } = data;
+        let imageUrl = "/captchas/" + fileName;
+        // 更新图片
+        captchaImg.src = imageUrl;
+        // 更新id
+        imageId = id;
+      })
+      .catch(function (err) {
+        console.log(err);
+      });
+  }
+
+  let charList = [];
+  // 通过字符宽度来分类样本集合
+  let charQueueList = [];
+  // 识别字符
+  function recognize(char) {
+    // console.log(char);
+    let distance;
+    let c;
+    // 取出宽度对应的执行队列
+    let queue = charQueueList[char.width] || charList;
+    // console.log(queue);
+    for (let i = 0; i < queue.length; i++) {
+      let d = Levenshtein.get(char.imageData.join(""), queue[i].data);
+      if (distance === undefined || d < distance) {
+        distance = d;
+        c = queue[i];
+      }
+      if (distance < 4) break;
+    }
+
+    return { distance, char: c };
+  }
+
+  // 处理验证码图片
+  function processCaptcha() {
+    let chars = document.getElementById("chars");
+    let { raw, normalized } = processImg(captchaImg);
+
+    // 原版字符
+    raw.forEach(function (v) {
+      // 通过 canvas 存图片
+      let canvas = document.createElement("canvas");
+      chars.appendChild(canvas);
+      // 设置 canvas 的宽高
+      canvas.width = v.width;
+      canvas.height = v.height;
+      // context
+      let ctx = canvas.getContext("2d");
+      v.draw(ctx);
+      // console.log(JSON.stringify(v.imageData));
+    });
+
+    chars.appendChild(document.createElement("br"));
+
+    // 打印标准化后的字符
+    normalized.forEach(function (char, i) {
+      // 试着识别验证码
+      // console.log(recognize(char));
+      let { distance, char: c } = recognize(char);
+      // 原生JS最为致命
+      let div = document.createElement("div");
+      // 通过 canvas 输出图片
+      let canvas = document.createElement("canvas");
+      div.appendChild(canvas);
+      // 设置 canvas 的宽高
+      canvas.width = char.width;
+      canvas.height = char.height;
+      // context
+      let ctx = canvas.getContext("2d");
+      char.draw(ctx);
+
+      // 提示文字
+      let span = document.createElement("span");
+      span.innerText = `result: ${c.char} distance: ${distance}`;
+
+      div.appendChild(span);
+
+      div.appendChild(document.createElement("br"));
+      // 加入专用输入框
+      let input = document.createElement("input");
+      input.placeholder = "输入字符";
+      div.appendChild(input);
+      // 加入提交按钮
+      let button = document.createElement("button");
+      button.innerText = "提交";
+      div.appendChild(button);
+
+      chars.appendChild(div);
+
+      // 加入换行
+      chars.appendChild(document.createElement("br"));
+
+      // 原生JS最为致命
+      // -----------有毒的分割线-------------
+      // 开始写提交的业务了
+      button.addEventListener('click', function (e) {
+        // console.log('click');
+        // console.log(input.value);
+        axios.post('/chars/add', {
+          char: input.value,
+          data: char.imageData.join(""),
+          width: char.width,
+          height: char.height,
+          imageId,
+          order: i + 1
+        }).then(function (res) {
+          console.log(res.data);
+          if (!res.data.success) {
+            button.innerText = "错误";
+            return;
+          }
+          // 成功以后的收尾工作，添加一些提示
+          button.innerText = "成功";
+          button.disabled = true;
+          input.disabled = true;
+        }).catch(function (err) {
+          console.log(err);
+        });
+      });
+    });
+
+    // 更新验证码图片按钮
+    let nextButton = document.createElement("button");
+    nextButton.innerText = "下一个";
+    chars.appendChild(nextButton);
+
+    nextButton.addEventListener('click', function (e) {
+      loadCaptcha();
+    });
+  }
+
+  // 图片加载好以后的操作
+  captchaImg.onload = function () {
+    // 首先当然是清空已有的字符
+    let chars = document.getElementById('chars');
+    while (chars.firstChild) {
+      chars.removeChild(chars.firstChild);
+    }
+    // 下载样本集
+    axios.get("/chars/get")
+      .then(function (res) {
+        let { success, data } = res.data;
+        if (!success) throw "error";
+        charList = data;
+        // 清空原来的队列
+        charQueueList = [];
+        // 按照宽度来分类样本集
+        charList.forEach(function (v) {
+          // 创建二维数组
+          if (!charQueueList[v.width]) {
+            charQueueList[v.width] = [];
+          }
+          charQueueList[v.width].push(v);
+        });
+        console.log(charQueueList);
+        // 开始处理
+        processCaptcha();
+      }).catch(function (err) {
+        console.log(err);
+      });
+  }
+
+  // 点击刷新验证码
+  captchaImg.onclick = function () {
+    loadCaptcha();
+  }
+
+  // 开局刷新验证码
+  window.onload = function () {
+    loadCaptcha();
+  }
+  </script>
+</html>
