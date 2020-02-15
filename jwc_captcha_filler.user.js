@@ -2146,7 +2146,7 @@ function recogCaptcha(innode, outnode, callback = function(result) {}, showpanel
     // 提示文字元素
     span: null,
     // 父元素
-    parent: document.getElementById('icode').parentNode,
+    parent: innode.parentNode,
 
     // 显示识别中
     start: function () {
